@@ -1,6 +1,5 @@
 #Importing essential libraries
-from tensorflow.keras.layers import Input, Conv2D
-from tensorflow.keras.layers import MaxPool2D
+from tensorflow.keras.layers import Input, Conv2D, MaxPool2D
 from tensorflow.keras.layers import ReLU, Dense, Flatten
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.datasets import cifar10
@@ -9,7 +8,7 @@ from sklearn.metrics import classification_report
 from tensorflow.keras import Model
 import matplotlib.pyplot as plt
 
-#Importing the dattaset and normalizing the data
+#Importing the dataset and normalizing the data
 (x_train, y_train), (x_test, y_test) = cifar10.load_data()
 x_train = x_train.reshape(x_train.shape[0], 32, 32, 3)
 x_test = x_test.reshape(x_test.shape[0], 32, 32, 3)
