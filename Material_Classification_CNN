@@ -1,0 +1,177 @@
+#Importing essential libraries and defining certain variables
+from tensorflow.keras.layers import Input, Conv2D, MaxPool2D
+from tensorflow.keras.layers import ReLU, Dense, Flatten, Dropout
+from tensorflow.keras.models import Sequential
+import numpy as np
+import os
+from sklearn.metrics import classification_report
+from tensorflow.keras import Model
+import matplotlib.pyplot as plt
+from matplotlib.pyplot import imread, show, imshow
+import cv2
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.utils import image_dataset_from_directory
+from tensorflow.keras.callbacks import ModelCheckpoint, EarlyStopping
+from tensorflow.keras.optimizers import Adam
+batchsize = 35
+
+#Cloning the data in the relevant GitHub repo, full credit to members of Sahaay, the Social Innovation Club, IIT Madras.
+! git clone https://github.com/Afeefaa/AWS
+os.chdir("AWS")
+
+
+
+#Loading the training dataset, supplemented with augmented images using ImageDataGenerator
+#Generating the training dataset is done using Lazy Loading
+train_instance = ImageDataGenerator(shear_range=0.1, height_shift_range=0.2, zoom_range=0.2, horizontal_flip=True, vertical_flip = True, width_shift_range=0.2)
+trainset = train_instance.flow_from_directory("train", target_size = (256, 256), batch_size = batchsize, class_mode="categorical")
+
+
+
+#Loading the validation and testing dataset manually since the "predb" directory is not suitable for image_dataset_from_directory
+os.chdir("predb")
+validation_labels = np.array([]).reshape((0,6))
+validation_images = np.array([]).reshape((0,256,256,3))
+
+
+
+#Encoding the labels in the expected format using the function below
+def one_hot_encode_class(x):
+  label_list = [0 for i in range(6)]
+  label_list[x] = 1
+  return np.array(label_list).reshape((1,6))
+
+
+
+#Function to load the image in the required format, assign a label to it and store the image and label appropriately
+def load_data(name):
+  global validation_labels
+  global validation_images
+  x=5 #Default label, incase the material is of Mixed type
+  global image
+  image = plt.imread(name)
+  image = cv2.resize(image, (256,256))
+  validation_images = np.append(validation_images, image.reshape((1,256,256,3)), axis=0)
+  #Assigning the proper labels to the images based on the file name
+  if "cardboard" in name:
+    x=0
+  elif "glass" in name:
+    x=1
+  elif "metal" in name:
+    x=2
+  elif "paper" in name:
+    x=3
+  elif "plastic" in name:
+    x=4
+  validation_labels = np.append(validation_labels, one_hot_encode_class(x), axis=0)  
+
+
+
+#Running a loop for all the images in the "predb" directory to load the validation and testing data
+for i in os.listdir()[1:]:
+  load_data(i)
+os.chdir("..")
+
+
+
+#Visualising the validation and testing dataset array
+print(validation_images[0])
+print(validation_labels[0])
+print(image.shape)
+
+
+
+#Generating the classification part of the network using a ANN and a CNN as a precursor to that.
+model = Sequential()
+model.add(Conv2D(filters=10, activation = "relu", kernel_size = (3,3), input_shape = (256, 256, 3)))
+model.add(MaxPool2D(pool_size = (2,2), strides = 2))
+model.add(Flatten())
+model.add(Dropout(0.1))
+model.add(Dense(256, activation = "relu"))
+model.add(Dense(6, activation = "softmax"))
+model.compile(optimizer = Adam(learning_rate=0.000005*35), loss = "categorical_crossentropy", metrics=['accuracy'])
+
+
+
+#Setting up callbacks 
+checkpoint = ModelCheckpoint("ckpt.keras", monitor = "val_accuracy", verbose = 1, save_best_only = True, mode = "max")
+stop = EarlyStopping(monitor = "val_loss", patience = 10)
+
+try:
+  model.load_weights("ckpt.keras")
+except:
+  print("No checkpoint found yet. Creating one now.")
+
+
+
+#Training the model and validating it 
+model.fit(trainset, steps_per_epoch = 1995//batchsize, epochs = 30, validation_data = (validation_images, validation_labels), callbacks = [checkpoint, stop])
+model.save("AWS")
+
+
+
+#Testing the model and reporting the accuracy. 
+
+names = ["Cardboard", "Glass", "Metal", "Paper", "Plastic", "Mixed"]
+flag = True
+
+#Navigating to the validation and testing directory
+try:
+  os.chdir("predb")
+except:
+  os.chdir(".")
+
+#Accessing the test images as a list of file names
+dirlist = os.listdir()
+while flag:
+  imgdir = dirlist[int(input("\nEnter Index of Test Image (An Integer from 0 to "+str(len(dirlist))+"):"))]
+  test_image = imread(imgdir)
+
+  #Displaying the test image
+  imshow(test_image)
+  show()
+
+  #Running the Neural Network over this image
+  img = cv2.resize(img, (256, 256))
+  img = img.reshape((1,256,256,3))
+  prediction = model.predict(img, verbose=0)
+  print(prediction)
+  pred_v2 = prediction.reshape((6,))
+
+  #Printing the correct class
+  if "cardboard" in imgdir:
+    print("Correct class: Cardboard")
+  elif "glass" in imgdir:
+    print("Correct class: Glass")
+  elif "metal" in imgdir:
+    print("Correct class: Metal")
+  elif "paper" in imgdir:
+    print("Correct class: Paper")
+  elif "plastic" in imgdir:
+    print("Correct class: Plastic")
+  else:
+    print("Correct class: Mixed (Mixture of different material types)")
+
+  #Printing the predicted class
+  if np.amax(pred_v2)<0.6:
+    print("\nPredicted Class : Mixed (Mixture of different material types)")
+  else:
+    print("\nPredicted class : "+names[int(np.argmax(pred_v2))])
+    print("Confidence of Prediction : "+np.amax(pred_v2)*100//1+"%")
+
+  #Asking the user if theprocess is to be continued
+  opt1 = input("Wish to predict another material?(1/0)")
+  if opt1=="1":
+    flag = True
+  else:
+    flag = False
+  if not flag:
+    break
+
+
+
+
+
+
+
+
