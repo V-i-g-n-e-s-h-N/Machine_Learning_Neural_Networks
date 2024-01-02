@@ -132,9 +132,9 @@ while flag:
   show()
 
   #Running the Neural Network over this image
-  img = cv2.resize(img, (256, 256))
-  img = img.reshape((1,256,256,3))
-  prediction = model.predict(img, verbose=0)
+  test_image = cv2.resize(test_image, (256, 256))
+  test_image = test_image.reshape((1,256,256,3))
+  prediction = model.predict(test_image, verbose=0)
   print(prediction)
   pred_v2 = prediction.reshape((6,))
 
