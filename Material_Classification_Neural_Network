@@ -110,7 +110,7 @@ model.save("AWS")
 
 
 
-#Testing the model and reporting the accuracy. 
+#Testing the model and reporting the accuracy.
 
 names = ["Cardboard", "Glass", "Metal", "Paper", "Plastic", "Mixed"]
 flag = True
@@ -123,7 +123,7 @@ except:
 
 #Accessing the test images as a list of file names
 dirlist = os.listdir()
-while flag:
+for i in dirlist:
   imgdir = dirlist[int(input("\nEnter Index of Test Image (An Integer from 0 to "+str(len(dirlist))+"):"))]
   test_image = imread(imgdir)
 
@@ -153,11 +153,11 @@ while flag:
     print("Correct class: Mixed (Mixture of different material types)")
 
   #Printing the predicted class
-  if np.amax(pred_v2)<0.6:
+  if np.amax(pred_v2)<0.5:
     print("\nPredicted Class : Mixed (Mixture of different material types)")
   else:
     print("\nPredicted class : "+names[int(np.argmax(pred_v2))])
-    print("Confidence of Prediction : "+np.amax(pred_v2)*100//1+"%")
+    print("Confidence of Prediction : "+str(np.amax(pred_v2)*100//1)+"%")
 
   #Asking the user if theprocess is to be continued
   opt1 = input("Wish to predict another material?(1/0)")
@@ -167,6 +167,60 @@ while flag:
     flag = False
   if not flag:
     break
+
+
+
+#Checking the accuracy
+names = ["Cardboard", "Glass", "Metal", "Paper", "Plastic", "Mixed"]
+flag = True
+
+#Navigating to the validation and testing directory
+try:
+  os.chdir("predb")
+except:
+  os.chdir(".")
+
+#Accessing the test images as a list of file names
+dirlist = os.listdir()
+total_length = len(dirlist)
+correct_length = 0
+for i in dirlist:
+  imgdir = i
+  test_image = imread(imgdir)
+
+  #Displaying the test image
+
+
+  #Running the Neural Network over this image
+  test_image = cv2.resize(test_image, (256, 256))
+  test_image = test_image.reshape((1,256,256,3))
+  prediction = model.predict(test_image, verbose=0)
+  pred_v2 = prediction.reshape((6,))
+
+  #Printing the correct class
+  if "cardboard" in imgdir:
+    correct_class = "Cardboard"
+  elif "glass" in imgdir:
+    correct_class = "Glass"
+  elif "metal" in imgdir:
+    correct_class = "Metal"
+  elif "paper" in imgdir:
+    correct_class = "Paper"
+  elif "plastic" in imgdir:
+    correct_class = "Plastic"
+  else:
+    correct_class = "Mixed"
+
+  #Printing the predicted class
+  if np.amax(pred_v2)<0.6:
+    pred_class = "Mixed"
+  else:
+    pred_class = names[int(np.argmax(pred_v2))]
+
+  if pred_class == correct_class:
+    correct_length += 1
+  
+print("Accuracy: ", (correct_length/total_length)*100,"%")
 
 
 
